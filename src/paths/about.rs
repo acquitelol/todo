@@ -6,11 +6,11 @@ use std::io::Write;
 
 use crate::paths::entry;
 
-pub fn main() {
-    display_main_title();
+pub fn main(version: &String) {
+    display_main_title(&version);
 
     let items = vec!["Back"];
-    let selected_item = display_main(&items);
+    let selected_item = display_main(&items, &version);
 
     match selected_item.as_ref() {
         "Back" => entry::main(None),
@@ -18,16 +18,17 @@ pub fn main() {
     }
 }
 
-fn display_main_title() {
+fn display_main_title(version: &String) {
     println!("It's so sweet! :3\r");
-    println!("Created by Rosie/Acquite as a random Rust Project~\r\n")
+    println!("Created by Rosie/Acquite as a random Rust Project~\r");
+    println!("Version: {}!\n\r", version)
 }
 
-fn display_main(items: &Vec<&str>) -> String {
+fn display_main(items: &Vec<&str>, version: &String) -> String {
     // Wait for the user to select an item
     let mut selected_index = 0;
 
-    redraw_main_menu(items, selected_index);
+    redraw_main_menu(items, selected_index, version);
     loop {
         let event = event::read().unwrap();
         match event {
@@ -40,7 +41,7 @@ fn display_main(items: &Vec<&str>) -> String {
                 if selected_index > 0 {
                     selected_index -= 1;
                 }
-                redraw_main_menu(items, selected_index);
+                redraw_main_menu(items, selected_index, version);
             }
             crossterm::event::Event::Key(KeyEvent {
                 code: KeyCode::Down,
@@ -51,7 +52,7 @@ fn display_main(items: &Vec<&str>) -> String {
                 if selected_index < items.len() - 1 {
                     selected_index += 1;
                 }
-                redraw_main_menu(items, selected_index);
+                redraw_main_menu(items, selected_index, version);
             }
             crossterm::event::Event::Key(KeyEvent {
                 code: KeyCode::Enter,
@@ -69,7 +70,7 @@ fn display_main(items: &Vec<&str>) -> String {
     }
 }
 
-fn redraw_main_menu(items: &Vec<&str>, selected_index: usize) {
+fn redraw_main_menu(items: &Vec<&str>, selected_index: usize, version: &String) {
     let mut stdout = std::io::stdout();
 
     // Move the cursor to the top-left corner of the screen
@@ -79,7 +80,7 @@ fn redraw_main_menu(items: &Vec<&str>, selected_index: usize) {
         terminal::Clear(terminal::ClearType::All)
     ).unwrap();    
 
-    display_main_title();
+    display_main_title(version);
 
     // Draw the context menu
     for (index, item) in items.iter().enumerate() {

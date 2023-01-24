@@ -10,12 +10,12 @@ use crate::common::generate;
 pub fn main(extra_content: Option<Vec<String>>) {
     display_main_title(&extra_content);
 
-    let mut items = generate::name_vector("./src/paths");
+    let mut items = generate::name_vector("./src/paths", &vec!["main.rs", "entry.rs", "mod.rs"]);
     items.push("Exit".to_string());
     let selected_item = display_main_context_menu(&items, &extra_content);
 
     match selected_item.as_ref() {
-        "About" => about::main(),
+        "About" => about::main(&env!("CARGO_PKG_VERSION").to_string()),
         "Create" => create::main(),
         "List" => list::main(),
         "Exit" => std::process::exit(0),

@@ -27,15 +27,15 @@ pub fn main(item: String, index: usize) {
     let mut todos: Todos = serde_json::from_str(&contents)
         .expect("Unable to parse JSON");
 
-    let extra_content: Option<Vec<String>> = if todos.items.as_array().expect("Invalid todo item list").len() == 0 {
+    let todo_items_length = todos.items.as_array().expect("Invalid todo item list").len();
+    let extra_content: Option<Vec<String>> = if todo_items_length == 0 {
         Some(vec!["(You have no TO-DO items!)".to_string()])
     } else {
         None
     };
         
-    if todos.items.as_array().expect("Invalid todo item list").len() == 0 {
-        display_main_title(&item, &extra_content);
-    } else {
+    display_main_title(&item, &extra_content);
+    if todo_items_length != 0 {
         let mut last = todos.items
             .as_array_mut()
             .unwrap()
@@ -60,45 +60,58 @@ pub fn main(item: String, index: usize) {
     }
 
     let user_input = &display_main_context_menu(&todos.items, &item, index, &extra_content, &specials);
+    handle_user_input(&user_input, item, main_file_path, &mut todos, &specials)    
+}
+
+fn handle_user_input(user_input: &Vec<(Value, usize)>, item: String, main_file_path: String, todos: &mut Todos, specials: &Vec<&str>) {
     let selected_item = &user_input[0].0;
+    let maybe_item: String = match selected_item {
+        Value::String(str) => str.to_string(),
+        Value::Object(obj) => obj["name"].as_str().unwrap().to_string(),
+        _ => panic!("Invalid Input at {}", selected_item)
+    };
 
-    if selected_item == &Value::String("Back".to_string()) {
-        todo::main(item);
-    } else if selected_item == &Value::String("Clear".to_string()) {
-        let default = json!({ "items": []});
-        fs::write(main_file_path, serde_json::to_string(&default).unwrap()).unwrap();
-        main(item, 0);
-    } else if selected_item == &Value::String("Create".to_string()) {
-        print!("\nEnter a name -> ");
-        terminal::disable_raw_mode().unwrap();
-        io::stdout().flush().expect("Unexpected error when trying to flush the buffer");
-
-        let user_input = generate::input();
-        terminal::enable_raw_mode().unwrap();
-
-        undo_changes(&mut todos, &specials);
-
-        todos.items
-            .as_array_mut()
-            .unwrap()
-            .push(json!({ "complete": Value::Bool(false), "name": Value::String(user_input)}));
-        
-        fs::write(main_file_path, serde_json::to_string(&todos).unwrap()).unwrap();
-        main(item, 0);
-    } else {
-        todos.items
-            .as_array_mut()
-            .unwrap()
-            .iter_mut()
-            .find(|item| item["name"].as_str().unwrap() == selected_item["name"])
-            .unwrap()["complete"] = Value::Bool(!selected_item["complete"].as_bool().unwrap());
-
-        undo_changes(&mut todos, &specials);
-
-        fs::write(main_file_path, serde_json::to_string(&todos).unwrap()).unwrap();
-        main(item, user_input[0].1);
-    }
+    match maybe_item.as_ref() {
+        "Back" => {
+            todo::main(item);
+        },
+        "Clear" => {
+            let default = json!({ "items": []});
+            fs::write(main_file_path, serde_json::to_string(&default).unwrap()).unwrap();
+            main(item, 0);
+        },
+        "Create" => {
+            print!("\nEnter a name -> ");
+            terminal::disable_raw_mode().unwrap();
+            io::stdout().flush().expect("Unexpected error when trying to flush the buffer");
     
+            let user_input = generate::input();
+            terminal::enable_raw_mode().unwrap();
+    
+            undo_changes(todos, &specials);
+    
+            todos.items
+                .as_array_mut()
+                .unwrap()
+                .push(json!({ "complete": Value::Bool(false), "name": Value::String(user_input)}));
+            
+            fs::write(main_file_path, serde_json::to_string(&todos).unwrap()).unwrap();
+            main(item, 0);
+        },
+        _ => {
+            todos.items
+                .as_array_mut()
+                .unwrap()
+                .iter_mut()
+                .find(|item| item["name"].as_str().unwrap() == selected_item["name"])
+                .unwrap()["complete"] = Value::Bool(!selected_item["complete"].as_bool().unwrap());
+
+            undo_changes(todos, &specials);
+
+            fs::write(main_file_path, serde_json::to_string(&todos).unwrap()).unwrap();
+            main(item, user_input[0].1);
+        }
+    }
 }
 
 fn display_main_title(todo: &String, extra_content: &Option<Vec<String>>) {
@@ -210,10 +223,7 @@ fn redraw_main_menu(items: &Vec<Value>, selected_index: usize, todo: &String, ex
         let maybe_item: String = match base_item {
             Value::String(str) => str.to_string(),
             Value::Object(obj) => obj["name"].as_str().unwrap().to_string(),
-            Value::Null => todo!(),
-            Value::Bool(_) => todo!(),
-            Value::Number(_) => todo!(),
-            Value::Array(_) => todo!(),
+            _ => panic!("Invalid Input at {}", base_item)
         };
         let item = maybe_item.replace("\"", "").trim().to_string();
         let emote = if specials.contains(&item.as_ref()) { "" } else { 

@@ -18,7 +18,7 @@ fn format_string(input: String) -> String {
     input
 }
 
-pub fn name_vector(path: &str) -> Vec<String> {
+pub fn name_vector(path: &str, blacklist: &Vec<&str>) -> Vec<String> {
     let mut items = vec![];
     for entry in fs::read_dir(path).unwrap() {
         let file_name = entry
@@ -29,7 +29,7 @@ pub fn name_vector(path: &str) -> Vec<String> {
             .trim()
             .to_string();
 
-        if file_name == "mod.rs" || file_name == "entry.rs" {
+        if blacklist.contains(&file_name.as_ref()) {
             continue;
         }
         items.push(format_string(file_name));

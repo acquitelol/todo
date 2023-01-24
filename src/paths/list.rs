@@ -21,7 +21,7 @@ pub fn main() {
         let content = "Here are your current TO-DO lists! :3\n\r".to_string();
         display_main_title(&content);
 
-        let mut items = generate::name_vector("./todos/");
+        let mut items = generate::name_vector("./todos/", &vec![".gitkeep"]);
 
         let last = items.pop().unwrap();
         items.push(last + "\n\r");
